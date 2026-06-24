@@ -1,0 +1,107 @@
+function doGet(e) {
+
+  var subject = e.parameter.subject
+    ? e.parameter.subject.trim()
+    : "PDC";
+
+  var id = e.parameter.id;
+  var date = e.parameter.date;
+  var time = decodeURIComponent(e.parameter.time);
+
+  // =========================
+  // CHECK DATA
+  // =========================
+
+  if (!id || !date || !time) {
+    return ContentService.createTextOutput("Missing Data");
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var sheet = ss.getSheetByName(subject);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(subject);
+  }
+
+  // =========================
+  // HEADER
+  // =========================
+
+  if (sheet.getLastRow() == 0) {
+
+    sheet.appendRow([
+      "ROLL NO.",
+      "DATE",
+      "TIME",
+      "STATUS"
+    ]);
+  }
+
+  var data = sheet.getDataRange().getValues();
+
+  var now = new Date();
+
+  // =========================
+  // DUPLICATE ATTENDANCE CHECK
+  // =========================
+
+  for (var i = data.length - 1; i > 0; i--) {
+
+    var rowId = String(data[i][0]).trim();
+
+    var rowDate = String(data[i][1]).trim();
+
+    // 👉 SAME ID + SAME DATE
+    if (
+      rowId == String(id).trim() &&
+      rowDate == String(date).trim()
+    ) {
+
+      return ContentService.createTextOutput(
+        "ALREADY MARKED"
+      );
+    }
+  }
+
+  // =========================
+// DATE CHANGE SPACE
+// =========================
+
+var lastRow = sheet.getLastRow();
+
+if (lastRow > 1) {
+
+  var lastDate = Utilities.formatDate(
+    new Date(sheet.getRange(lastRow, 2).getValue()),
+    "GMT+5:30",
+    "dd/MM/yyyy"
+  );
+
+  // 👉 NEW DATE
+  if (lastDate != String(date).trim()) {
+
+    sheet.appendRow(["", "", "", ""]);
+    sheet.appendRow(["", "", "", ""]);
+  }
+}
+
+  // =========================
+  // SAVE ATTENDANCE
+  // =========================
+
+  var currentTime = Utilities.formatDate(
+    now,
+    "GMT+5:30",
+    "hh:mm a"
+  );
+
+  sheet.appendRow([
+  String(id),
+  String(date),
+  "'" + currentTime,
+  "Present"
+]);
+
+  return ContentService.createTextOutput("Done");
+}
